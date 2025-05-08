@@ -1,0 +1,91 @@
+Database federation in DB2 LUW (Linux, Unix, Windows) allows you to access and integrate data from multiple heterogeneous data sources as if they were part of a single database. Federation is commonly used in scenarios where you want to query or manage data from multiple databases or external systems without having to move the data into a single database.
+
+Here is an overview of **DB2 Table and Database Federation in DB2 LUW**:
+---
+### 1. **Setting Up Federation in DB2 LUW**
+To enable database federation, you need to:
+- Enable the federation feature.
+- Configure wrappers to interact with the external data source.
+- Create server definitions to connect to the data source.
+- Define nicknames for remote tables so they can be queried as if they exist locally.
+
+#### Steps:
+1. **Enable Federation**
+   - Ensure that federation is enabled for your DB2 instance:
+     ```bash
+     db2set DB2_FEDERATED=YES
+     db2stop
+     db2start
+     ``
+2. **Install Wrappers**
+   - DB2 comes with built-in wrappers for certain data sources (e.g., `DRDA`, `Oracle`, `ODBC`). Use the following command to register a wrapper:
+     ```sql
+     CREATE WRAPPER drda;
+     ```
+3. **Create Server Definitions**
+   - Define a server for the data source you want to federate:
+     ```sql
+     CREATE SERVER remote_server
+     TYPE DB2/UDB
+     VERSION '11.5'
+     WRAPPER drda
+     AUTHORIZATION 'username'
+     PASSWORD 'password'
+     OPTIONS (HOST 'remote_host', PORT '50000', DBNAME 'remote_db');
+     ```
+4. **Create Nicknames**
+   - Create nicknames to represent tables from the remote database:
+     ```sql
+     CREATE NICKNAME local_table FOR remote_server.schema.remote_table;
+     ```
+5. **Query Remote Tables**
+   - Once nicknames are created, you can query the remote tables as if they were local tables:
+     ```sql
+     SELECT * FROM local_table;   ```
+---
+### 2. **Federated Database Objects**
+Federation involves several key objects:
+- **Wrapper**: A connector that defines how DB2 interacts with a specific type of data source.
+- **Server**: Represents a remote database or data source.
+- **User Mapping**: Maps a local DB2 user to a remote data source user.
+- **Nickname**: A local alias for a remote table or view.
+---
+### 3. **Supported Data Sources**
+DB2 LUW supports federation with the following data sources:
+- Other DB2 databases (via DRDA wrapper).
+- Non-DB2 relational databases like Oracle, SQL Server, MySQL (via ODBC or specific wrappers).
+- Non-relational data sources like flat files and web services (with custom configurations).
+---
+### 4. **Examples**
+#### Example: Federating a Table from a Remote DB2 Database
+1. **Create Wrapper**:
+   ```sql
+   CREATE WRAPPER drda;
+   ```
+2. **Create Server**:
+   ```sql
+   CREATE SERVER remote_db_server
+   TYPE DB2/UDB
+   VERSION '11.5'
+   WRAPPER drda
+   OPTIONS (HOST '192.168.1.100', PORT '50000', DBNAME 'HRDB');
+   ```
+3. **Create User Mapping**:
+   ```sql
+   CREATE USER MAPPING FOR CURRENT_USER
+   SERVER remote_db_server
+   OPTIONS (REMOTE_AUTHID 'remote_user', REMOTE_PASSWORD 'remote_pass');
+   ```
+4. **Create Nickname**:
+   ```sql
+   CREATE NICKNAME remote_employee FOR remote_db_server.hr.employee;
+   ```
+5. **Query the Remote Table**:
+   ```sql
+   SELECT * FROM remote_employee;
+   ```
+### 5. **Considerations**
+- **Performance**: Query performance may depend on the network latency and the capability of the remote system.
+- **Security**: Ensure secure connections to remote servers, and use appropriate user mapping for access control.
+- **Data Types**: Ensure compatible data types between DB2 and the remote database.
+- **Transaction Management**: Distributed transactions may require additional configuration.
